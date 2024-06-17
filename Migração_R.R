@@ -1,3 +1,5 @@
+## Código elaborado para projetar projetar a população da Indonésia entre 2000 e 2010.
+
 # NOTE: To load data, you must download both the extract's data and the DDI
 # and also set the working directory to the folder with these files (or change the path below).
 
@@ -10,8 +12,10 @@ library(tidyverse)
 library(tidyr)
 library(dplyr)
 library(ggplot2)
-install.packages("clipr")
 library(clipr)
+library(openxlsx)
+library(readxl)
+
 
 glimpse(data)
 
@@ -42,8 +46,6 @@ unique(data2010$MIGRATE5)
 
 table(data2010$MIGRATE5)
 
-2290870 * 10
-
 glimpse(data2010)
 
 prop.table(table(data2010$MIGRATE5, data2010$AGE))
@@ -68,20 +70,23 @@ table_age_migrate_2000 <- table(data2000$AGE, data2000$MIGRATE5)
 prop.table(table_age_migrate_2000, margin = 1)
 round(prop.table(table_age_migrate_2000, margin = 1), 3)
 
+###############################################################################
 
-############################### 2010 ###########################################
+## Criação de data.frames com a frequência de migrantes por idade e sexo para 1990, 2000 e 2010
+
+# 2010 
 
 table_migrate_2010 <- table(data2010$AGE, data2010$MIGRATE5, data2010$SEX)
 prop.table(table_migrate_2010, margin = 1)
 round(prop.table(table_migrate_2010, margin = 1), 3)
 
-############################### 2000 ###########################################
+# 2000 
 
 table_migrate_2000 <- table(data2000$AGE, data2000$MIGRATE5, data2000$SEX)
 prop.table(table_migrate_2000, margin = 1)
 round(prop.table(table_migrate_2000, margin = 1), 3)
 
-############################### 1990 ###########################################
+# 1990 
 
 table_migrate_1990 <- table(data1990$AGE, data1990$MIGRATE5, data1990$SEX)
 prop.table(table_migrate_1990, margin = 1)
@@ -90,14 +95,12 @@ round(prop.table(table_migrate_1990, margin = 1), 3)
 # salvando em um arquivo CSV
 
 write.xlsx(table_migrate_1990, file = "Indonésia_MIGR_1990.xlsx")
+write.xlsx(table_migrate_2000, file = "Indonésia_MIGR_2000.xlsx")
+write.xlsx(table_migrate_2010, file = "Indonésia_MIGR_2010.xlsx")
 
 
-library(openxlsx)
+############################ Suavizando a curva da frequência de migrantes por sexo e idade ################################
 
-############################ Suavizando a curva ################################
-
-library(ggplot2)
-library(readxl)
 Migration_Indo <- read_excel("Migration_Indo.xlsx")
 
 glimpse(Migration_Indo)
