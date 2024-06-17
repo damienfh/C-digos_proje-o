@@ -1,3 +1,4 @@
+## Script realizado para analisar o fenômeno do crescimento da chefia feminina no Brasil a partir da PNADc de 2012 a 2022.
 
 library(PNADcIBGE)
 library(magrittr)
