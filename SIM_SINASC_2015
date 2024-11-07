@@ -1,0 +1,49 @@
+library(readr)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+library(remotes)
+
+remotes::install_github("rfsaldanha/microdatasus")
+
+
+library(microdatasus)
+dados <- fetch_datasus(year_start = 2020, year_end = 2020, uf = "MA", information_system = "SIM-DO")
+dados <- process_sim(dados)
+
+glimpse(dados)
+
+
+###### 2015 ######
+
+
+# Contar observações não nulas para cada variável de idade, separadas por sexo
+num_obs_idademinutos_sexo <- table(dados$IDADEminutos, dados$SEXO)
+num_obs_idadehoras_sexo <- table(dados$IDADEhoras, dados$SEXO)
+num_obs_idadedias_sexo <- table(dados$IDADEdias, dados$SEXO)
+num_obs_idademeses_sexo <- table(dados$IDADEmeses, dados$SEXO)
+
+sum(table(dados$IDADEmeses, dados$SEXO))
+
+ 
+# Exibir o número de observações não nulas para cada variável de idade, separadas por sexo
+ 
+
+sum(table(dados$IDADEhoras, dados$SEXO))
+# Filtrar observações para as idades de 1, 2, 3 e 4 anos
+dados_idade_1 <- subset(dados, IDADEanos == "1")
+dados_idade_2 <- subset(dados, IDADEanos == "2")
+dados_idade_3 <- subset(dados, IDADEanos == "3")
+dados_idade_4 <- subset(dados, IDADEanos == "4")
+
+# Contar observações não nulas para cada idade específica, separadas por sexo
+num_obs_idade_1_sexo <- table(dados_idade_1$IDADEanos, dados_idade_1$SEXO)
+num_obs_idade_2_sexo <- table(dados_idade_2$IDADEanos, dados_idade_2$SEXO)
+num_obs_idade_3_sexo <- table(dados_idade_3$IDADEanos, dados_idade_3$SEXO)
+num_obs_idade_4_sexo <- table(dados_idade_4$IDADEanos, dados_idade_4$SEXO)
+
+# Exibir o número de observações não nulas para cada idade específica, separadas por sexo
+print(num_obs_idade_1_sexo)
+print(num_obs_idade_2_sexo)
+print(num_obs_idade_3_sexo)
+print(num_obs_idade_4_sexo)
