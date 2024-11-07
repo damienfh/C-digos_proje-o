@@ -1,0 +1,135 @@
+# NOTE: To load data, you must download both the extract's data and the DDI
+# and also set the working directory to the folder with these files (or change the path below).
+
+if (!require("ipumsr")) stop("Reading IPUMS data into R requires the ipumsr package. It can be installed using the following command: install.packages('ipumsr')")
+
+ddi <- read_ipums_ddi("ipumsi_00001.xml")
+data <- read_ipums_micro(ddi)
+
+head(data)
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+
+glimpse(data)
+
+## Filtrando por ano (2000)
+data2000 = data %>% 
+  filter(YEAR == 2000)
+
+summary(data2000$ID2000A_AGE)
+
+## Filtrando por ano (2010)
+## Já é possível ver pela summary que a média de idade aumentou entre 2000 e 2010
+
+data2010 = data %>% 
+  filter(YEAR == 2010)
+
+summary(data2010$ID2010A_AGE)
+
+
+## Na base de dados original 1 = Male e 2 = Female. Com a função mutate eu transformei
+## 1 em "Male" e 2 em "Female" nas duas bases que eu criei de 2000 e 2010.
+
+data2000 = data2000 %>% 
+  mutate(ID2000A_SEX = case_when(
+    ID2000A_SEX == 1 ~ "Male",
+    ID2000A_SEX == 2 ~ "Female"
+  ))
+
+data2010 = data2010 %>% 
+  mutate(ID2010A_SEX = case_when(
+    ID2010A_SEX == 1 ~ "Male",
+    ID2010A_SEX == 2 ~ "Female"
+  ))
+
+## Renomeando as variáveis
+
+data2000 = data2000 %>% 
+  rename(AGE = ID2000A_AGE, SEX = ID2000A_SEX)
+
+data2010 = data2010 %>% 
+  rename(AGE = ID2010A_AGE, SEX = ID2010A_SEX)
+
+## Selecionando apenas as variáveis de cada ano. Por exemplo: retirei de 2000
+## as variáveis ID2010A_SEX e ID2010A_AGE, que devem estar apenas no banco de 
+## 2010 e vice-versa.
+
+
+data2000 = data2000 %>% 
+  select(COUNTRY, YEAR, SAMPLE, SERIAL, HHWT, PERNUM, PERWT, SEX, AGE)
+
+data2010 = data2010 %>% 
+  select(COUNTRY, YEAR, SAMPLE, SERIAL, HHWT, PERNUM, PERWT, SEX, AGE)
+
+######## Isso foi com ajuda do Chatgpt
+
+######## 2000 #########
+
+#### Cria a variável AGE_INTERVAL, que basicamente agrupa as observações dentro 
+#### de categorias de intervalos etários
+
+data2000 <- data2000 %>%
+  mutate(AGE_INTERVAL = cut_width(AGE, width = 5, boundary = 0, 
+                                  labels = c("0-4", "5-9", "10-14", "15-19", "20-24",
+                                             "25-29", "30-34", "35-39", "40-44", "45-49",
+                                             "50-54", "55-59", "60-64", "65-69", "70-74",
+                                             "75-79", "80-84", "85-89", "90-94", "95-99")))
+
+data2000$AGE_INTERVAL <- cut(data2000$AGE, breaks = c(0, 4, 9, 14, 19, 24, 29, 34, 39, 44, 49, 54, 59, 64, 69, 74, 79, 84, 89, 94, 99, 104), labels = c("0 - 4", "5 - 9", "10 - 14", "15 - 19", "20 - 24", "25 - 29", "30 - 34", "35 - 39", "40 - 44", "45 - 49", "50 - 54", "55 - 59", "60 - 64", "65 - 69", "70 - 74", "75 - 79", "80 - 84", "85 - 89", "90 - 94", "95 - 99", "100 - 104"))
+
+#### Esse código serviu para transformar o que antes era uma coluna SEX, com duas
+#### categorias possíveis: Male e Female, em duas colunas. Uma Male e outra Female
+#### com o número de observações de cada uma por intervalo etário (AGE_INTERVAL)
+
+
+dados2000 = data2000 %>% 
+  group_by(AGE_INTERVAL, SEX, PERWT) %>%
+  count() %>%
+  pivot_wider(names_from = "SEX", values_from = "n") %>% 
+  summarise(Female = Female*PERWT, Male = Male*PERWT) %>% 
+  ungroup()
+
+
+#### Redistribuindo os NA proporcionalmente pelas idades #######
+
+### Criei dois vetores (female_weight e Male_weight) com os pesos relativos
+### de cada intervalo etário no total das colunas Male e Female.
+
+female_weight <- dados2000$Female / sum(dados2000$Female, na.rm = TRUE)
+Male_weight = dados2000$Male / sum(dados2000$Male, na.rm = T)
+
+#### Nesse código eu mudo a variável Male e Female multiplicando o total de NA 
+### em Male e Female pelo vetor
+#### de peso relativo do grupo etário (female_weight e male_eight)
+
+dados2000 <- dados2000 %>% 
+  mutate(Female = 1646630*female_weight + Female,
+         Male = 1680710*Male_weight + Male) 
+
+#### Agora que redistribui os NA, exclui-los
+dados2000 <- na.omit(dados2000)
+
+
+###### Construindo a Pirâmide etária ##########
+options(scipen = 999)
+
+
+ggplot(dados2000, aes(x = Female, y = AGE_INTERVAL)) +
+  geom_col(aes(x = -Male, fill = "Homens"), alpha = 0.8) +
+  geom_col(aes(fill = "Mulheres"), alpha = 0.8) +
+  scale_x_continuous(labels = abs, limits = c(-12000000, 12000000)) +
+  scale_fill_manual(values = c("blue", "pink"), 
+                    labels = c("Homens", "Mulheres")) +
+  labs(title = "Pirâmide Etária da Indonésia - 2000", x = "População", y = "Faixa Etária") +
+  theme_classic() +
+  theme(axis.line.y = element_blank(),
+        axis.text.y = element_text(size = 12),
+        axis.ticks.y = element_blank(),
+        axis.text.x = element_text(size = 12),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        plot.title = element_text(size = 16, face = "bold")) +
+  guides(fill = guide_legend(title = NULL))
